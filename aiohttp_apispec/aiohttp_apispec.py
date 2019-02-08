@@ -3,7 +3,7 @@ from typing import Callable, Awaitable
 
 from aiohttp import web
 from aiohttp.hdrs import METH_ANY, METH_ALL
-from apispec import APISpec, Path
+from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 
 from .utils import get_path, get_path_keys, issubclass_py37fix
@@ -19,7 +19,7 @@ class AiohttpApiSpec:
     ):
 
         plugin = MarshmallowPlugin()
-        self.spec = APISpec(plugins=(plugin,), **kwargs)
+        self.spec = APISpec(openapi_version="3.0.2", plugins=(plugin,), **kwargs)
 
         self.url = url
         self._registered = False
@@ -77,12 +77,12 @@ class AiohttpApiSpec:
         if method in PATHS:
             existing = [p["name"] for p in data["parameters"] if p["in"] == "path"]
             data["parameters"].extend(
-                {"in": "path", "name": path_key, "required": True, "type": "string"}
+                {"in": "path", "name": path_key, "required": True, "schema": {"type": "string"}}
                 for path_key in get_path_keys(url_path)
                 if path_key not in existing
             )
             operations = copy.deepcopy(data)
-            self.spec.add_path(Path(path=url_path, operations={method: operations}))
+            self.spec.path(path=url_path, operations={method: operations})
 
 
 def setup_aiohttp_apispec(

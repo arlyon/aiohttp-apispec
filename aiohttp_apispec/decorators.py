@@ -1,13 +1,10 @@
-import apispec
-
-if tuple(int(i) for i in apispec.__version__.split(".")) <= (0, 38, 0):
-    from apispec.ext.marshmallow.swagger import schema2parameters
-else:
-    from apispec.ext.marshmallow.openapi import OpenAPIConverter
-
-    schema2parameters = OpenAPIConverter("2.0").schema2parameters
+from textwrap import dedent
 
 VALID_RESPONSE_FIELDS = {"schema", "description", "headers", "examples"}
+
+
+def default_apispec():
+    return {"responses": {}, "parameters": []}
 
 
 def docs(**kwargs):
@@ -37,13 +34,17 @@ def docs(**kwargs):
     """
 
     def wrapper(func):
-        kwargs["produces"] = ["application/json"]
         if not hasattr(func, "__apispec__"):
-            func.__apispec__ = {"parameters": [], "responses": {}, "docked": {}}
+            func.__apispec__ = default_apispec()
+
         extra_parameters = kwargs.pop("parameters", [])
         extra_responses = kwargs.pop("responses", {})
         func.__apispec__["parameters"].extend(extra_parameters)
         func.__apispec__["responses"].update(extra_responses)
+
+        if "description" not in kwargs and func.__doc__ is not None:
+            kwargs["description"] = dedent(func.__doc__)
+
         func.__apispec__.update(kwargs)
         return func
 
